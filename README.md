@@ -1,2 +1,2 @@
 # testapp-galapi
-test galaxy rest
+blah blah
