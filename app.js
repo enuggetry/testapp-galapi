@@ -46,7 +46,9 @@ currentHistoryJSON(function(){
     console.log("currentHistoryJSON() done.");
 });
 */
-execTool_blastPlus();
+//execTool_blastPlus();
+
+uploadFiles();
 
 setTimeout(function() {
     console.log('Done');
@@ -202,4 +204,47 @@ function currentHistoryJSON(postFn) {
             }
       }
     });
+}
+
+// fetch files from url
+function uploadFiles(postFn) {
+    console.log('uploadFiles()');
+    var params = 
+    {
+            "tool_id": "upload1",
+            "history_id": "f597429621d6eb2b",   // must reference a history
+            "inputs": {
+  
+                "dbkey":"?",
+                "file_type":"auto",
+                "files_0|type":"upload_dataset",
+                "files_0|space_to_tab":null,
+                "files_0|to_posix_lines":"Yes",
+                "files_0|url_paste":"http://192.168.56.102/MyFiles/myvolvox.fa\nhttp://192.168.56.102/MyFiles/myctgA-17400..23000.fasta"
+            }
+    };  
+    var jsonstr = JSON.stringify(params);
+
+    request.post({
+        url: galaxyUrl+"/api/tools"+"?key="+apiKey, 
+        method: 'POST',
+        //qs: params,
+        headers: {
+            //'Content-Type': 'application/json',
+            //'Accept':'application/json, text/javascript, */*; q=0.01',
+            'Accept-Encoding' : 'gzip, deflate',
+            'Accept-Language' : 'en-US,en;q=0.5',
+            'Content-Length' : jsonstr.length
+            //'Referrer':galaxyUrl,
+            //'X-Requested-With':'XMLHttpRequest'
+        },
+        json: params
+    }, function(error, response, body){
+        if(error) {
+            console.log(error);
+        } else {
+            console.log(response.statusCode, body);
+        }
+    });    
+    
 }
