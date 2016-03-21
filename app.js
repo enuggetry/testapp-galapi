@@ -3,9 +3,10 @@ console.log("Galaxy API Test...");
 var request = require('request');
 var prettyjson = require('prettyjson');
 var prompt = require('prompt');
+var fs = require('fs');
 
 // enables http debugging
-require('request-debug')(request);  
+//require('request-debug')(request);  
 
 /*
   prompt.start();
@@ -48,12 +49,14 @@ currentHistoryJSON(function(){
 */
 //execTool_blastPlus();
 
-uploadFiles();
+//importFiles();
+exportFiles("/var/www/html/MyFilesTarget");
 
 setTimeout(function() {
     console.log('Done');
 }, 5000);
 
+// run NCBI Blast+ with two fixed fasta files
 function execTool_blastPlus(){
     console.log('execTool_blastPlus()');
     var params = 
@@ -167,7 +170,7 @@ function showHistories() {
             console.log("Showing individual histories...");
 
             for(x in histories) {
-                    //console.dir(histories[x]);
+                    console.log('histories['+x+']');
                     history = histories[x];
 
                     url = galaxyUrl+history.url+"?key="+apiKey;
@@ -206,8 +209,8 @@ function currentHistoryJSON(postFn) {
     });
 }
 
-// fetch files from url
-function uploadFiles(postFn) {
+// fetch file(s) from url (import file into galaxy)
+function importFiles(postFn) {
     console.log('uploadFiles()');
     var params = 
     {
@@ -248,3 +251,79 @@ function uploadFiles(postFn) {
     });    
     
 }
+// export files found in current history into the exportpath
+function exportFiles(exportpath) {
+    
+    var theExportPath = exportpath;
+    
+    console.log('exportFiles()');
+    request(galaxyUrl +"/api/histories"+"?key="+apiKey, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+            //console.log(body);
+            try {
+                    var histories = JSON.parse(body);
+                    console.log(prettyjson.render(histories,pOptions)); // Print the body of response.
+            }
+            catch (ex) {
+                    console.error(ex);
+            }
+
+
+            for(var x in histories) {
+                console.log('showing histories['+x+']');
+                history = histories[x];
+
+                // get the summerized history entry
+                var url = galaxyUrl+history.url+"/contents"+"?key="+apiKey;
+                console.log(url);
+                request(url, function(error,response,body) {
+                    //console.log(body);
+                    try {
+                        var historyList = JSON.parse(body);
+                        
+                        //console.log(prettyjson.render(historyList,pOptions)); // Print the body of response.
+                        
+                        // choose fasta files 
+                        for(var i=0;i<historyList.length;i++) {
+                            if (historyList[i].deleted===false && historyList[i].extension==="fasta") {
+                                
+                                console.log("\n---------------------------------------------name="+historyList[i].name);
+                                //console.log(prettyjson.render(historyList[i],pOptions)); // Print the body of response.
+                            
+                                // get the dataset entry (containing the filename etc
+                                var url = galaxyUrl+historyList[i].url+"?key="+apiKey;
+                                
+                                request(url, function(error,response,body) {
+                                    //console.log(body);
+                                    try {
+                                        var dataEntry = JSON.parse(body);
+                                        //console.log(prettyjson.render(dataEntry,pOptions)); // Print the body of response.
+                                        console.log("\n---------------------------------------------name="+dataEntry.name);
+                                        
+                                        //copy the file to exportpath
+                                        fs.createReadStream(dataEntry.file_name).pipe(fs.createWriteStream(theExportPath+"/"+dataEntry.name));
+                                        
+                                    }
+                                    catch (ex) {
+                                        console.error(ex);
+                                    }
+                                });
+                            }
+                        }
+
+                        
+                        //var histlist = history.state_ids.ok;
+                        //console.log(prettyjson.render(histlist,pOptions));
+                    }
+                    catch (ex) {
+                        console.error(ex);
+                    }
+                });
+
+                break;  // only handle one iteration
+            }
+      }
+    });
+    
+}
+
