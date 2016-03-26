@@ -8,6 +8,40 @@ var fs = require('fs');
 // enables http debugging
 //require('request-debug')(request);  
 
+
+
+
+
+var kue = require('kue');
+var express = require('express');
+var ui = require('kue-ui');
+var app = express();
+
+// connect kue to appropriate redis, or omit for default localhost
+/*
+kue.createQueue({
+    redis: REDIS_URL
+});
+*/
+ui.setup({
+    apiURL: '/api', // IMPORTANT: specify the api url
+    baseURL: '/kue', // IMPORTANT: specify the base url
+    updateInterval: 5000 // Optional: Fetches new data every 5000 ms
+});
+
+// Mount kue JSON api
+app.use('/api', kue.app);
+// Mount UI
+app.use('/kue', ui.app);
+
+app.listen(3000);
+
+
+
+
+
+
+
 /*
   prompt.start();
 
@@ -30,6 +64,27 @@ var pOptions = {
   stringColor: 'white'
 };
 
+
+/* galaxy job states / kue job state mapping
+    ‘new’               inactive
+    ‘upload’            active
+    ‘waiting’           inactive
+    ‘queued’            inactive
+    ‘running’           running
+    ‘ok’                complete
+    ‘error’             failed
+    ‘paused’            delayed
+    ‘deleted’           ??
+    ‘deleted_new’       ??
+
+    Kue job states:
+    active
+    complete
+    inactive
+    delayed
+    failed
+*/
+
 // api key on usegalaxy.org
 var galaxyUrl = "https://usegalaxy.org";
 var apiKey = "key=d44069eb5b4e0bb206be1d6bd01cd943";
@@ -48,9 +103,9 @@ currentHistoryJSON(function(){
 });
 */
 //execTool_blastPlus();
-
+showJobs();
 //importFiles();
-exportFiles("/var/www/html/MyFilesTarget");
+//exportFiles("/var/www/html/MyFilesTarget");
 
 setTimeout(function() {
     console.log('Done');
@@ -327,3 +382,40 @@ function exportFiles(exportpath) {
     
 }
 
+function showJobs() {
+    console.log('showHistories()');
+    request(galaxyUrl +"/api/jobs"+"?key="+apiKey, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+            //console.log(body);
+            try {
+                    var jobs = JSON.parse(body);
+            }
+            catch (ex) {
+                    console.error(ex);
+            }
+            console.log(prettyjson.render(jobs,pOptions)); // Print the body of response.
+/*
+            console.log("Showing individual histories...");
+
+            for(x in jobs) {
+                    console.log('histories['+x+']');
+                    job = jobs[x];
+
+                    url = galaxyUrl+history.url+"?key="+apiKey;
+                    console.log(url);
+                    request(url, function(error,response,body) {
+                            //console.log(body);
+                            try {
+                                    var history = JSON.parse(body);
+                            }
+                            catch (ex) {
+                                    console.error(ex);
+                            }
+                            console.log(prettyjson.render(history,pOptions)); // Print the body of response.
+                    });
+
+            }
+*/
+      }
+    });
+}
